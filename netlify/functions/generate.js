@@ -34,55 +34,70 @@ exports.handler = async (event) => {
 
   const instruction = genreInstructions[genre] || genreInstructions['cuento'];
 
-  const systemPrompt = `Eres un escritor de la Biblioteca Infinita de Borges. Cada texto que escribes tiene la firma de "rainvare" — una autora que escribe con precisión técnica y sensibilidad literaria, frases cortas y directas, sin adornos innecesarios, con imágenes concretas y finales que resuenan.
+  const prompt = `Eres un escritor de la Biblioteca Infinita de Borges. Escribe en español únicamente la obra literaria, sin introducciones ni explicaciones.
 
-IMPORTANTE:
-- Escribe SOLO la obra literaria. Sin introducción, sin explicación, sin comillas envolventes.
-- Comienza con el título (una línea sola), luego línea en blanco, luego el texto.
-- No incluyas la firma ni el nombre del autor.
-- El texto debe sentirse como si siempre hubiera existido en un volumen olvidado de esta biblioteca.
-- Escribe en español.`;
+Reglas estrictas:
+- Primera línea: el título solo
+- Línea en blanco
+- El texto de la obra
+- No escribas "Aquí está", "Claro", ni nada fuera de la obra misma
+- No incluyas la firma del autor
+- Estilo de rainvare: frases cortas, imágenes concretas, sin adornos
 
-  const userPrompt = `La persona busca: "${tema}"\n\nEscribe ${instruction} sobre este tema, en el estilo de rainvare. Que tenga vida propia.`;
+La persona busca: "${tema}"
+
+Escribe ${instruction} sobre este tema. Que tenga vida propia.`;
 
   try {
-    const response = await fetch('https://router.huggingface.co/novita/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${HF_TOKEN}`,
-      },
-      body: JSON.stringify({
-        model: 'qwen/qwen2.5-72b-instruct',
-        max_tokens: 1000,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-      }),
-    });
+    const response = await fetch(
+      'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${HF_TOKEN}`,
+        },
+        body: JSON.stringify({
+          inputs: `<s>[INST] ${prompt} [/INST]`,
+          parameters: {
+            max_new_tokens: 900,
+            temperature: 0.85,
+            top_p: 0.92,
+            do_sample: true,
+            return_full_text: false,
+          },
+        }),
+      }
+    );
 
     const data = await response.json();
 
-    if (data.error) {
+    // HF Inference API returns array
+    if (Array.isArray(data) && data[0]?.generated_text) {
       return {
-        statusCode: 502,
-        body: JSON.stringify({ error: data.error.message || 'Error de HF API.' }),
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: data[0].generated_text.trim() }),
       };
     }
 
-    const text = data.choices?.[0]?.message?.content || '';
+    // Error from HF
+    if (data.error) {
+      return {
+        statusCode: 502,
+        body: JSON.stringify({ error: data.error }),
+      };
+    }
 
     return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      statusCode: 502,
+      body: JSON.stringify({ error: 'Respuesta inesperada de HF: ' + JSON.stringify(data).slice(0, 200) }),
     };
 
   } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Error interno del proxy: ' + err.message }),
+      body: JSON.stringify({ error: 'Error interno: ' + err.message }),
     };
   }
 };
