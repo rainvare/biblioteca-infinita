@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Biblioteca de Babel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=IM+Fell+English:ital@0;1&family=Cinzel:wght@400;600&family=Cormorant:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void:#0a0c14; --stone:#1a1c28; --wood:#2d1f0e; --darkwood:#1a1205;
+  --parchment:#e8dcc0; --aged:#c9b896; --gold:#c9960a; --amber:#b07d18;
+  --candle:#f0c060; --vitrail:#4a9bb5; --vitrail2:#7bc47a; --vitrail3:#c4784a;
+  --fog:rgba(180,190,220,0.06); --smoke:rgba(100,110,140,0.12);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--void);
+  color:var(--parchment);font-family:'IM Fell English',serif;cursor:none;}
+
+/* ── CURSOR ── */
+#cur{position:fixed;z-index:9999;pointer-events:none;
+  width:20px;height:20px;transform:translate(-50%,-50%);}
+#cur::before{content:'✦';font-size:14px;color:var(--gold);
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:curSpin 4s linear infinite;opacity:0.8;}
+#cur-glow{position:fixed;z-index:9997;pointer-events:none;
+  transform:translate(-50%,-50%);width:280px;height:280px;border-radius:50%;
+  background:radial-gradient(circle,rgba(180,140,30,0.06) 0%,transparent 70%);}
+@keyframes curSpin{from{transform:translate(-50%,-50%) rotate(0deg);}
+  to{transform:translate(-50%,-50%) rotate(360deg);}}
+
+/* ── SCENE ── */
+#scene{position:fixed;inset:0;z-index:0;overflow:hidden;
+  perspective:900px;perspective-origin:50% 45%;}
+
+/* FLOOR */
+#floor{position:absolute;bottom:0;left:0;right:0;height:55%;
+  transform-origin:bottom center;
+  transform:rotateX(70deg) translateZ(0px);
+  background:repeating-linear-gradient(
+    90deg, rgba(30,25,20,0.8) 0px, rgba(30,25,20,0.8) 1px,
+    transparent 1px, transparent 60px),
+  repeating-linear-gradient(
+    0deg, rgba(30,25,20,0.8) 0px, rgba(30,25,20,0.8) 1px,
+    transparent 1px, transparent 60px),
+  linear-gradient(to far bottom, #1a1510 0%, #0d0b08 100%);}
+
+/* WALLS */
+#wall-left,#wall-right{position:absolute;top:0;bottom:30%;width:28%;
+  background:linear-gradient(to right,#0d0b06,#1a1408);
+  display:flex;flex-direction:column;justify-content:flex-start;padding-top:8%;}
+#wall-left{left:0;transform-origin:left center;
+  transform:rotateY(32deg) translateZ(-20px);
+  box-shadow:inset -20px 0 60px rgba(0,0,0,0.6);}
+#wall-right{right:0;transform-origin:right center;
+  transform:rotateY(-32deg) translateZ(-20px);
+  box-shadow:inset 20px 0 60px rgba(0,0,0,0.6);}
+
+/* SHELVES */
+.shelf-unit{width:100%;padding:0 6%;margin-bottom:4px;}
+.shelf{height:42px;background:linear-gradient(180deg,#2d1f0e 0%,#1a1205 100%);
+  border-bottom:2px solid #3d2a10;position:relative;display:flex;
+  align-items:flex-end;padding:0 4px 2px;gap:1px;overflow:hidden;}
+.shelf::after{content:'';position:absolute;bottom:-2px;left:0;right:0;
+  height:6px;background:linear-gradient(180deg,#4a3018,#2a1a08);
+  border-radius:0 0 2px 2px;}
+.book-spine{height:32px;border-radius:1px 1px 0 0;flex-shrink:0;
+  width:8px;opacity:0.85;}
+
+/* ARCH */
+#arch{position:absolute;top:0;left:10%;right:10%;bottom:28%;
+  border:none;pointer-events:none;}
+#arch::before{content:'';position:absolute;top:0;left:0;right:0;
+  height:100%;
+  background:linear-gradient(180deg,rgba(10,12,20,0.95) 0%,transparent 30%);
+  clip-path:polygon(0 0,100% 0,100% 20%,50% 50%,0 20%);}
+
+/* GOTHIC ARCHES sides */
+.gothic-arch{position:absolute;top:0;width:12%;height:80%;
+  pointer-events:none;}
+.gothic-arch.left{left:28%;}
+.gothic-arch.right{right:28%;}
+.gothic-arch::before{content:'';position:absolute;inset:0;
+  border-left:2px solid rgba(180,140,60,0.12);
+  border-right:2px solid rgba(180,140,60,0.12);
+  border-top:2px solid rgba(180,140,60,0.12);
+  border-radius:50% 50% 0 0 / 30% 30% 0 0;}
+
+/* VITRAIL — rose window */
+#vitrail{position:absolute;top:4%;left:50%;transform:translateX(-50%);
+  width:min(220px,28vw);height:min(220px,28vw);
+  border-radius:50%;overflow:hidden;z-index:2;}
+#vitrail svg{width:100%;height:100%;animation:vitSpin 40s linear infinite;}
+@keyframes vitSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+#vitrail-glow{position:absolute;top:4%;left:50%;
+  transform:translateX(-50%) translateY(-10%);
+  width:min(500px,60vw);height:min(400px,50vw);
+  border-radius:50%;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse,
+    rgba(74,155,181,0.12) 0%,rgba(123,196,122,0.07) 30%,transparent 65%);
+  animation:vitGlow 4s ease infinite alternate;}
+@keyframes vitGlow{from{opacity:0.6;}to{opacity:1;}}
+
+/* CORRIDOR VANISH */
+#corridor{position:absolute;top:15%;left:30%;right:30%;bottom:30%;
+  background:linear-gradient(180deg,
+    rgba(74,155,181,0.08) 0%,rgba(20,15,8,0.4) 60%,transparent 100%);
+  pointer-events:none;z-index:1;}
+
+/* FOG */
+#fog{position:absolute;bottom:0;left:0;right:0;height:35%;z-index:3;
+  pointer-events:none;
+  background:linear-gradient(to top,
+    rgba(140,150,180,0.18) 0%,rgba(120,130,160,0.08) 40%,transparent 100%);
+  animation:fogDrift 8s ease infinite alternate;}
+@keyframes fogDrift{from{transform:translateX(-3%);}to{transform:translateX(3%);}}
+
+/* CANDLES */
+.candle{position:absolute;bottom:22%;z-index:4;display:flex;
+  flex-direction:column;align-items:center;}
+.candle-flame{width:8px;height:14px;
+  background:radial-gradient(ellipse at 50% 80%,#fff8e0 0%,var(--candle) 40%,var(--gold) 70%,transparent 100%);
+  border-radius:50% 50% 30% 30%;animation:cFlicker 0.12s infinite alternate;
+  filter:blur(0.5px);}
+.candle-body{width:10px;height:30px;
+  background:linear-gradient(180deg,#e8dcc0,#c9b896);border-radius:2px;}
+.candle-glow{position:absolute;bottom:0;width:80px;height:80px;
+  border-radius:50%;transform:translate(-50%,30%);left:50%;
+  background:radial-gradient(circle,rgba(240,192,96,0.2) 0%,transparent 70%);}
+@keyframes cFlicker{
+  from{transform:scaleX(1) rotate(-1deg);opacity:1;}
+  to{transform:scaleX(0.85) rotate(2deg);opacity:0.88;}}
+
+/* LIBRARIAN FIGURE */
+#librarian{position:absolute;bottom:28%;left:50%;transform:translateX(-50%);
+  z-index:5;width:min(90px,12vw);height:min(160px,22vw);pointer-events:none;
+  animation:libFloat 6s ease infinite alternate;}
+@keyframes libFloat{from{transform:translateX(-50%) translateY(0);}
+  to{transform:translateX(-50%) translateY(-8px);}}
+#librarian svg{width:100%;height:100%;filter:drop-shadow(0 0 20px rgba(74,155,181,0.3));}
+
+/* FLYING BOOKS */
+.fbook{position:absolute;z-index:6;pointer-events:none;font-size:1.4rem;
+  animation:bookFly linear infinite;opacity:0.7;filter:sepia(0.5);}
+@keyframes bookFly{
+  0%{transform:translate(0,0) rotate(0deg);opacity:0;}
+  10%{opacity:0.7;}
+  90%{opacity:0.5;}
+  100%{transform:translate(var(--dx),var(--dy)) rotate(var(--dr));opacity:0;}}
+
+/* GRAIN */
+#grain{position:fixed;inset:0;z-index:8;pointer-events:none;opacity:0.04;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* VIGNETTE */
+#vignette{position:fixed;inset:0;z-index:7;pointer-events:none;
+  background:radial-gradient(ellipse 90% 80% at 50% 40%,
+    transparent 20%,rgba(5,4,10,0.5) 60%,rgba(5,4,10,0.95) 100%);}
+
+/* ── SCREENS ── */
+.scr{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:20px;
+  opacity:0;pointer-events:none;transition:opacity 0.8s ease;}
+.scr.on{opacity:1;pointer-events:all;}
+
+/* ── INTRO ── */
+#scr-intro{gap:0;}
+.epigraph{font-family:'Cormorant',serif;font-style:italic;
+  font-size:clamp(0.7rem,1.3vw,0.84rem);color:rgba(200,170,100,0.38);
+  text-align:center;letter-spacing:0.07em;line-height:2;max-width:380px;
+  margin-bottom:32px;animation:fadeUp 3s 0.5s both;}
+.t-block{text-align:center;margin-bottom:36px;animation:fadeUp 3s 1.2s both;}
+.t-block h1{font-family:'UnifrakturMaguntia',cursive;
+  font-size:clamp(2rem,5vw,3.8rem);color:var(--gold);
+  text-shadow:0 0 40px rgba(200,150,20,0.3),0 0 80px rgba(74,155,181,0.15);
+  line-height:1.1;margin-bottom:8px;letter-spacing:0.05em;}
+.t-block .sub{font-family:'Cormorant',serif;font-style:italic;
+  font-size:clamp(0.75rem,1.4vw,0.9rem);color:rgba(200,170,100,0.32);
+  letter-spacing:0.16em;}
+.rule{width:100px;height:1px;margin:0 auto 36px;
+  background:linear-gradient(90deg,transparent,var(--amber),transparent);opacity:0.35;
+  animation:fadeUp 2s 1.8s both;}
+.sb{width:100%;max-width:500px;display:flex;flex-direction:column;
+  align-items:center;gap:16px;animation:fadeUp 2s 2.2s both;}
+.slabel{font-family:'Cormorant',serif;font-style:italic;font-size:0.78rem;
+  color:rgba(200,170,100,0.35);letter-spacing:0.16em;text-transform:uppercase;}
+#q{width:100%;background:rgba(10,12,20,0.9);border:none;
+  border-bottom:1px solid rgba(180,120,20,0.3);color:var(--parchment);
+  font-family:'IM Fell English',serif;font-style:italic;
+  font-size:clamp(0.95rem,1.8vw,1.12rem);padding:12px 0;text-align:center;
+  outline:none;cursor:none;letter-spacing:0.03em;transition:border-color 0.4s;}
+#q::placeholder{color:rgba(180,140,70,0.2);}
+#q:focus{border-color:rgba(180,120,20,0.6);}
+.gr{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;}
+.pill{font-family:'Cormorant',serif;font-style:italic;font-size:0.78rem;
+  color:rgba(180,140,70,0.38);border:1px solid rgba(150,100,20,0.15);
+  padding:4px 14px;cursor:none;transition:all 0.25s;background:transparent;}
+.pill:hover,.pill.on{color:var(--gold);border-color:rgba(180,130,20,0.5);
+  background:rgba(150,100,20,0.08);}
+.brow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+.btn{font-family:'Cinzel',serif;font-size:0.59rem;letter-spacing:0.18em;
+  color:var(--amber);background:transparent;border:1px solid rgba(150,100,20,0.26);
+  padding:10px 26px;cursor:none;transition:all 0.3s;position:relative;overflow:hidden;}
+.btn::before{content:'';position:absolute;inset:0;background:rgba(150,100,20,0.07);
+  transform:translateX(-101%);transition:transform 0.3s;}
+.btn:hover::before{transform:translateX(0);}
+.btn:hover{border-color:rgba(180,130,20,0.6);color:var(--gold);}
+.btn:active{transform:scale(0.98);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── NARRATOR ── */
+#scr-narrate{gap:24px;text-align:center;}
+#nt{font-family:'Cormorant',serif;font-style:italic;
+  font-size:clamp(0.95rem,2vw,1.22rem);color:rgba(220,190,120,0.7);
+  max-width:520px;line-height:2.1;min-height:3.5em;}
+.ncoords{font-family:'IM Fell English',serif;font-size:0.72rem;
+  color:rgba(160,120,50,0.26);letter-spacing:0.12em;}
+
+/* ── LOADING ── */
+#scr-loading{gap:20px;}
+#lmsg{font-family:'Cormorant',serif;font-style:italic;
+  font-size:clamp(0.88rem,1.8vw,1.05rem);color:rgba(200,165,90,0.5);
+  letter-spacing:0.04em;animation:breathe 2.5s ease infinite;}
+@keyframes breathe{0%,100%{opacity:0.3;}50%{opacity:0.85;}}
+.spinner{font-size:1.8rem;animation:spin 3s linear infinite;display:inline-block;
+  filter:sepia(1) brightness(0.55);}
+@keyframes spin{0%{transform:rotate(0)}50%{transform:rotate(180deg)}100%{transform:rotate(180deg)}}
+
+/* ── BOOK ── */
+#scr-book{justify-content:flex-start;padding:0;}
+#book-outer{width:100%;height:100%;display:flex;flex-direction:column;
+  max-width:880px;margin:0 auto;padding:14px 14px 0;justify-content:center;gap:8px;}
+#btitle{text-align:center;}
+#btitle-text{font-family:'UnifrakturMaguntia',cursive;
+  font-size:clamp(1rem,2.5vw,1.5rem);color:var(--gold);
+  text-shadow:0 0 30px rgba(180,130,20,0.2),0 0 60px rgba(74,155,181,0.1);}
+#bsource{text-align:center;margin-top:2px;}
+#bsource-text{font-family:'Cormorant',serif;font-style:italic;font-size:0.7rem;
+  color:rgba(160,120,50,0.32);letter-spacing:0.1em;}
+
+/* spread */
+#spread{display:grid;grid-template-columns:1fr 1fr;height:68vh;
+  border:1px solid rgba(150,100,20,0.16);border-top:2px solid rgba(180,130,20,0.35);
+  position:relative;background:rgba(10,12,20,0.96);
+  box-shadow:0 0 80px rgba(0,0,0,0.9),inset 0 0 60px rgba(0,0,0,0.6);}
+#spread::before{content:'';position:absolute;top:0;bottom:0;left:50%;
+  transform:translateX(-50%);width:2px;
+  background:linear-gradient(to bottom,transparent,rgba(100,65,10,0.4) 20%,
+    rgba(80,50,8,0.5) 50%,rgba(100,65,10,0.4) 80%,transparent);z-index:2;}
+#spread::after{content:'';position:absolute;top:-1px;left:18%;right:18%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0.4;}
+.page{padding:24px 30px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+.page::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 26px,
+    rgba(180,140,60,0.02) 26px,rgba(180,140,60,0.02) 27px);}
+.phdr{display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(150,100,20,0.1);flex-shrink:0;}
+.pnum{font-family:'Cinzel',serif;font-size:0.58rem;color:rgba(160,120,50,0.26);letter-spacing:0.12em;}
+.ptop{font-family:'Cormorant',serif;font-style:italic;font-size:0.65rem;
+  color:rgba(160,120,50,0.26);letter-spacing:0.08em;}
+.pbody{font-family:'Cormorant',serif;font-size:clamp(0.78rem,1.4vw,0.92rem);
+  color:rgba(225,205,162,0.82);line-height:1.95;flex:1;overflow:hidden;white-space:pre-wrap;}
+.ptranslation{font-family:'Cormorant',serif;font-style:italic;
+  font-size:clamp(0.7rem,1.2vw,0.82rem);color:rgba(180,155,100,0.5);
+  line-height:1.8;margin-top:12px;padding-top:10px;
+  border-top:1px solid rgba(150,100,20,0.1);white-space:pre-wrap;}
+.pftr{display:flex;justify-content:space-between;align-items:baseline;
+  margin-top:10px;padding-top:8px;border-top:1px solid rgba(150,100,20,0.08);flex-shrink:0;}
+.pauthor{font-family:'Cormorant',serif;font-style:italic;font-size:0.65rem;color:rgba(160,120,50,0.3);}
+.pcoords{font-family:'IM Fell English',serif;font-size:0.58rem;color:rgba(140,100,40,0.2);letter-spacing:0.06em;}
+
+/* controls */
+#bctrl{display:flex;justify-content:space-between;align-items:center;
+  padding:0 2px 8px;flex-shrink:0;}
+.cg{display:flex;gap:7px;align-items:center;}
+.ibtn{background:transparent;border:1px solid rgba(150,100,20,0.17);
+  color:rgba(160,120,50,0.42);width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:none;font-size:0.76rem;transition:all 0.2s;}
+.ibtn:hover{border-color:rgba(180,130,20,0.5);color:var(--amber);
+  background:rgba(150,100,20,0.07);}
+.clabel{font-family:'Cormorant',serif;font-style:italic;font-size:0.68rem;
+  color:rgba(160,120,50,0.25);}
+
+/* lang badge */
+#lang-badge{display:inline-block;font-family:'Cinzel',serif;font-size:0.55rem;
+  letter-spacing:0.12em;color:rgba(74,155,181,0.6);
+  border:1px solid rgba(74,155,181,0.2);padding:2px 10px;margin-top:3px;}
+
+/* FLOAT QUOTE */
+#fquote{position:fixed;bottom:18px;right:20px;z-index:9;pointer-events:none;
+  max-width:240px;text-align:right;opacity:0.16;transition:opacity 1.2s;}
+#fquote p{font-family:'Cormorant',serif;font-style:italic;font-size:0.67rem;
+  color:var(--aged);line-height:1.75;}
+
+@media(max-width:620px){
+  #spread{grid-template-columns:1fr;height:62vh;}
+  #page-r{display:none;}
+  #spread::before{display:none;}
+  .page{padding:18px 16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div id="cur"></div>
+<div id="cur-glow"></div>
+
+<!-- SCENE -->
+<div id="scene">
+  <!-- Floor -->
+  <div id="floor"></div>
+
+  <!-- Walls with shelves -->
+  <div id="wall-left" id="wl"></div>
+  <div id="wall-right" id="wr"></div>
+
+  <!-- Gothic arch lines -->
+  <div class="gothic-arch left"></div>
+  <div class="gothic-arch right"></div>
+
+  <!-- Corridor vanish point -->
+  <div id="corridor"></div>
+
+  <!-- Vitrail glow -->
+  <div id="vitrail-glow"></div>
+
+  <!-- Rose window -->
+  <div id="vitrail">
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="rg1" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fff8e0" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#4a9bb5" stop-opacity="0.3"/>
+        </radialGradient>
+      </defs>
+      <circle cx="100" cy="100" r="98" fill="#0a0c14" stroke="#c9960a" stroke-width="1.5"/>
+      <!-- Petals -->
+      <g opacity="0.85">
+        <ellipse cx="100" cy="55" rx="14" ry="40" fill="#4a9bb5" opacity="0.7"/>
+        <ellipse cx="100" cy="55" rx="14" ry="40" fill="#4a9bb5" opacity="0.7" transform="rotate(45 100 100)"/>
+        <ellipse cx="100" cy="55" rx="14" ry="40" fill="#7bc47a" opacity="0.7" transform="rotate(90 100 100)"/>
+        <ellipse cx="100" cy="55" rx="14" ry="40" fill="#7bc47a" opacity="0.7" transform="rotate(135 100 100)"/>
+        <ellipse cx="100" cy="55" rx="14" ry="40" fill="#c4784a" opacity="0.7" transform="rotate(180 100 100)"/>
+        <ellipse cx="100" cy="55" rx="14" ry="40" fill="#c4784a" opacity="0.7" transform="rotate(225 100 100)"/>
+        <ellipse cx="100" cy="55" rx="14" ry="40" fill="#9b6bc4" opacity="0.7" transform="rotate(270 100 100)"/>
+        <ellipse cx="100" cy="55" rx="14" ry="40" fill="#9b6bc4" opacity="0.7" transform="rotate(315 100 100)"/>
+      </g>
+      <!-- Inner ring -->
+      <circle cx="100" cy="100" r="30" fill="#0a0c14" stroke="#c9960a" stroke-width="1"/>
+      <circle cx="100" cy="100" r="18" fill="#c9960a" opacity="0.25"/>
+      <circle cx="100" cy="100" r="8" fill="#f0c060" opacity="0.5"/>
+      <!-- Spokes -->
+      <g stroke="#c9960a" stroke-width="0.5" opacity="0.4">
+        <line x1="100" y1="2" x2="100" y2="198"/>
+        <line x1="2" y1="100" x2="198" y2="100"/>
+        <line x1="30" y1="30" x2="170" y2="170"/>
+        <line x1="170" y1="30" x2="30" y2="170"/>
+      </g>
+      <!-- Outer ring -->
+      <circle cx="100" cy="100" r="97" fill="none" stroke="#c9960a" stroke-width="0.8" opacity="0.4"/>
+      <circle cx="100" cy="100" r="80" fill="none" stroke="#c9960a" stroke-width="0.4" opacity="0.2"/>
+    </svg>
+  </div>
+
+  <!-- Librarian -->
+  <div id="librarian">
+    <svg viewBox="0 0 90 180" xmlns="http://www.w3.org/2000/svg">
+      <!-- Robe -->
+      <path d="M45 30 Q20 60 15 180 L75 180 Q70 60 45 30Z"
+        fill="#1a2035" opacity="0.95"/>
+      <!-- Hood -->
+      <ellipse cx="45" cy="28" rx="18" ry="22" fill="#1a2035"/>
+      <ellipse cx="45" cy="20" rx="14" ry="16" fill="#141828"/>
+      <!-- Hands -->
+      <ellipse cx="22" cy="110" rx="6" ry="4" fill="#2a3050" transform="rotate(-30 22 110)"/>
+      <ellipse cx="68" cy="110" rx="6" ry="4" fill="#2a3050" transform="rotate(30 68 110)"/>
+      <!-- Glow from vitrail -->
+      <ellipse cx="45" cy="28" rx="18" ry="18" fill="none"
+        stroke="#4a9bb5" stroke-width="1" opacity="0.3"/>
+    </svg>
+  </div>
+
+  <!-- Candles -->
+  <div class="candle" style="left:22%">
+    <div class="candle-flame"></div>
+    <div class="candle-body"></div>
+    <div class="candle-glow"></div>
+  </div>
+  <div class="candle" style="left:35%">
+    <div class="candle-flame"></div>
+    <div class="candle-body" style="height:20px"></div>
+    <div class="candle-glow"></div>
+  </div>
+  <div class="candle" style="right:22%">
+    <div class="candle-flame"></div>
+    <div class="candle-body"></div>
+    <div class="candle-glow"></div>
+  </div>
+  <div class="candle" style="right:35%">
+    <div class="candle-flame"></div>
+    <div class="candle-body" style="height:25px"></div>
+    <div class="candle-glow"></div>
+  </div>
+
+  <!-- Fog -->
+  <div id="fog"></div>
+</div>
+
+<div id="grain"></div>
+<div id="vignette"></div>
+
+<!-- ── SCREENS ── -->
+
+<!-- 1. INTRO -->
+<div class="scr on" id="scr-intro">
+  <p class="epigraph">
+    "By this art you may contemplate<br>the variation of the 23 letters…"<br>
+    <span style="opacity:0.5;font-size:0.9em">— The Anatomy of Melancholy</span>
+  </p>
+  <div class="t-block">
+    <h1>La Biblioteca<br>de Babel</h1>
+    <p class="sub">jorge luis borges · 1941</p>
+  </div>
+  <div class="rule"></div>
+  <div class="sb">
+    <span class="slabel">¿Qué busca el viajero?</span>
+    <input type="text" id="q" placeholder="el nombre de lo que se perdió…"
+      autocomplete="off" spellcheck="false"/>
+    <div class="gr" id="gr">
+      <button class="pill on"  data-g="cuento">Cuento</button>
+      <button class="pill" data-g="poema">Poema</button>
+      <button class="pill" data-g="ensayo">Ensayo</button>
+      <button class="pill" data-g="enciclopedia">Enciclopedia</button>
+      <button class="pill" data-g="fragmento">Fragmento</button>
+      <button class="pill" data-g="carta">Carta</button>
+      <button class="pill" data-g="diario">Diario</button>
+    </div>
+    <div class="brow">
+      <button class="btn" id="btn-seek">✦ Buscar en la biblioteca</button>
+      <button class="btn" id="btn-wander">◌ Dejarme perder</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2. NARRATOR -->
+<div class="scr" id="scr-narrate">
+  <p id="nt"></p>
+  <p class="ncoords" id="ncoords"></p>
+</div>
+
+<!-- 3. LOADING -->
+<div class="scr" id="scr-loading">
+  <span class="spinner">⧗</span>
+  <p id="lmsg">El bibliotecario recorre las galerías…</p>
+</div>
+
+<!-- 4. BOOK -->
+<div class="scr" id="scr-book">
+  <div id="book-outer">
+    <div id="btitle"><span id="btitle-text">—</span></div>
+    <div id="bsource">
+      <span id="bsource-text"></span>
+      <span id="lang-badge"></span>
+    </div>
+    <div id="spread">
+      <div class="page" id="page-l">
+        <div class="phdr">
+          <span class="pnum" id="pnl">p. —</span>
+          <span class="ptop" id="glabel">—</span>
+        </div>
+        <div class="pbody" id="tl"></div>
+        <div class="ptranslation" id="transl" style="display:none"></div>
+        <div class="pftr">
+          <span class="pauthor" id="pauthor">—</span>
+          <span class="pcoords" id="cl"></span>
+        </div>
+      </div>
+      <div class="page" id="page-r">
+        <div class="phdr">
+          <span class="ptop" id="glabel-r">—</span>
+          <span class="pnum" id="pnr">p. —</span>
+        </div>
+        <div class="pbody" id="tr"></div>
+        <div class="ptranslation" id="transr" style="display:none"></div>
+        <div class="pftr">
+          <span class="pcoords"></span>
+          <span class="pauthor" style="opacity:0">—</span>
+        </div>
+      </div>
+    </div>
+    <div id="bctrl">
+      <div class="cg">
+        <button class="ibtn" id="btn-prev" title="Sala anterior">←</button>
+        <button class="ibtn" id="btn-next" title="Sala siguiente">→</button>
+      </div>
+      <span class="clabel" id="rstatus"></span>
+      <div class="cg">
+        <button class="ibtn" id="btn-home" title="Volver">✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOAT QUOTE -->
+<div id="fquote"><p id="fqp"></p></div>
+
+<script>
+// ── CURSOR ──
+const curEl=document.getElementById('cur'),cgEl=document.getElementById('cur-glow');
+document.addEventListener('mousemove',e=>{
+  curEl.style.left=e.clientX+'px'; curEl.style.top=e.clientY+'px';
+  cgEl.style.left=e.clientX+'px'; cgEl.style.top=e.clientY+'px';
+});
+document.querySelectorAll('button,input').forEach(el=>el.style.cursor='none');
+
+// ── SHELVES ──
+function buildShelves(){
+  const colors=['#8B4513','#6B3410','#A0522D','#5C4033','#7B3F00',
+    '#8B6914','#4a3020','#6b4226','#8B7355','#3d2b1f'];
+  ['wl','wr'].forEach(id=>{
+    const wall=document.getElementById(id);
+    for(let s=0;s<6;s++){
+      const unit=document.createElement('div'); unit.className='shelf-unit';
+      const shelf=document.createElement('div'); shelf.className='shelf';
+      const n=Math.floor(Math.random()*18)+10;
+      for(let b=0;b<n;b++){
+        const spine=document.createElement('div'); spine.className='book-spine';
+        spine.style.background=colors[Math.floor(Math.random()*colors.length)];
+        spine.style.width=(6+Math.random()*10)+'px';
+        spine.style.height=(24+Math.random()*16)+'px';
+        spine.style.opacity=0.7+Math.random()*0.3;
+        shelf.appendChild(spine);
+      }
+      unit.appendChild(shelf); wall.appendChild(unit);
+    }
+  });
+}
+buildShelves();
+
+// ── FLYING BOOKS ──
+const bookEmojis=['📖','📗','📘','📙','📚','📜'];
+function spawnBook(){
+  const b=document.createElement('div'); b.className='fbook';
+  b.textContent=bookEmojis[Math.floor(Math.random()*bookEmojis.length)];
+  const startX=20+Math.random()*60;
+  const startY=20+Math.random()*50;
+  const dx=(Math.random()-0.5)*400;
+  const dy=-100-Math.random()*200;
+  const dr=(Math.random()-0.5)*180;
+  const dur=4+Math.random()*6;
+  b.style.cssText=`left:${startX}%;top:${startY}%;
+    --dx:${dx}px;--dy:${dy}px;--dr:${dr}deg;
+    animation-duration:${dur}s;animation-delay:${Math.random()*8}s;`;
+  document.getElementById('scene').appendChild(b);
+  setTimeout(()=>b.remove(),(dur+8)*1000);
+}
+setInterval(spawnBook,1800);
+for(let i=0;i<5;i++) setTimeout(spawnBook,i*600);
+
+// ── SCREENS ──
+let current='scr-intro';
+function go(id){
+  document.querySelector('.scr.on')?.classList.remove('on');
+  document.getElementById(id).classList.add('on');
+  current=id;
+}
+
+// ── STATE ──
+let genre='cuento',lastTema='',lastSeed='';
+
+document.getElementById('gr').querySelectorAll('.pill').forEach(p=>{
+  p.addEventListener('click',()=>{
+    document.querySelectorAll('.pill').forEach(x=>x.classList.remove('on'));
+    p.classList.add('on'); genre=p.dataset.g;
+  });
+});
+
+// ── COORDS ──
+function makeCoords(seed){
+  let h=0x811c9dc5;
+  for(let i=0;i<seed.length;i++){h^=seed.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}
+  return{sala:(h%999983)+1,piso:((h>>8)%40)-20,
+    est:((h>>16)%4)+1,vol:((h>>20)%32)+1,pag:((h>>24)%410)+1};
+}
+function fmtC(c){
+  return `sala ${String(c.sala).padStart(6,'0')} · piso ${c.piso>=0?'+'+c.piso:c.piso} · vol. ${c.vol} · pág. ${c.pag}`;
+}
+
+// ── LANGUAGES ──
+const languages=[
+  // Real
+  {code:'es',name:'Español',authorStyle:'hispanic'},
+  {code:'en',name:'English',authorStyle:'english'},
+  {code:'fr',name:'Français',authorStyle:'french'},
+  {code:'de',name:'Deutsch',authorStyle:'german'},
+  {code:'it',name:'Italiano',authorStyle:'italian'},
+  {code:'pt',name:'Português',authorStyle:'portuguese'},
+  {code:'ru',name:'Русский',authorStyle:'russian'},
+  {code:'ar',name:'العربية',authorStyle:'arabic'},
+  {code:'ja',name:'日本語',authorStyle:'japanese'},
+  {code:'zh',name:'中文',authorStyle:'chinese'},
+  {code:'la',name:'Lingua Latina',authorStyle:'latin'},
+  {code:'el',name:'Ελληνικά',authorStyle:'greek'},
+  {code:'he',name:'עברית',authorStyle:'hebrew'},
+  {code:'sa',name:'संस्कृतम्',authorStyle:'sanskrit'},
+  {code:'pl',name:'Polski',authorStyle:'polish'},
+  {code:'nl',name:'Nederlands',authorStyle:'dutch'},
+  // Fictitious
+  {code:'qya',name:'Quenya (Élfico Alto)',authorStyle:'elvish',fictional:true},
+  {code:'sjn',name:'Sindarin (Élfico Gris)',authorStyle:'elvish',fictional:true},
+  {code:'tlh',name:'tlhIngan Hol (Klingon)',authorStyle:'klingon',fictional:true},
+  {code:'dot',name:'Dothraki',authorStyle:'dothraki',fictional:true},
+  {code:'val',name:'Alto Valyrio',authorStyle:'valyrian',fictional:true},
+  {code:'brg',name:'Borgesiano',authorStyle:'borgesiano',fictional:true},
+  {code:'sol',name:'Soláresit',authorStyle:'borgesiano',fictional:true},
+];
+
+const authorsByStyle={
+  hispanic:['Jorge Medina','Elena Vargas','Carlos Fuentes','Isabel Ríos','Valentina Sosa'],
+  english:['Arthur Pemberton','Eleanor Marsh','Thomas Whitfield','Clara Holt','Edmund Gray'],
+  french:['Étienne Moreau','Céleste Dupont','Armand Lefèvre','Marguerite Vidal','Henri Rousseau'],
+  german:['Friedrich Kellner','Ingrid Schäfer','Wolfgang Braun','Hildegard Müller','Ernst Vogel'],
+  italian:['Lorenzo Ferretti','Giovanna Esposito','Marco Ricci','Chiara Fontana','Aldo Gentile'],
+  portuguese:['António Figueiredo','Beatriz Sousa','Rui Carvalho','Inês Monteiro','Diogo Ferreira'],
+  russian:['Алексей Соколов','Наталья Волкова','Дмитрий Козлов','Ирина Морозова','Павел Новиков'],
+  arabic:['عمر الفاروق','ليلى النجار','محمد الشرقي','فاطمة الزهراء','يوسف الحكيم'],
+  japanese:['中村 哲也','山田 美咲','田中 修一','佐藤 葉子','鈴木 一郎'],
+  chinese:['陈志远','李月华','王明道','林秀英','张文博'],
+  latin:['Marcus Aurelius Vindex','Gaius Pontifex','Lucia Cornelia','Quintus Fabianus','Aelia Rufina'],
+  greek:['Αριστείδης Παπαδόπουλος','Ελένη Νικολάου','Σωκράτης Αντωνίου','Αθηνά Κωνσταντίνου'],
+  hebrew:['אברהם כהן','שרה לוי','יצחק גולדברג','רחל ביטון','משה אזולאי'],
+  sanskrit:['राजेन्द्र शर्मा','सीता देवी','विष्णु प्रसाद','कमला रानी','आनन्द मिश्र'],
+  polish:['Stanisław Wiśniewski','Agnieszka Kowalska','Tadeusz Nowak','Zofia Wróbel','Marek Jabłoński'],
+  dutch:['Pieter van den Berg','Anneliese de Vries','Willem Bakker','Hendrika Smit','Dirk Hoogenbosch'],
+  elvish:['Galadriel Celeborn','Ithildin Anarion','Eärwen Noldorin','Celebrimbor Fëanárion','Lúthien Tinúviel'],
+  klingon:['Qa\'vIn HoD','toH\'vor vestai','K\'mpec sutai','Lursa vestai-Duras','B\'Elanna Torres'],
+  dothraki:['Drogo mo Bharbo','Jhiqui vi Dothrak','Khal Moro','Irri vo Jhaqo','Pono mo Qohor'],
+  valyrian:['Daenys Velaryon','Aegon Targaryen','Rhaenys Belaerys','Balerion Visenya','Meraxes Aerea'],
+  borgesiano:['ꞧ꙳ℵ Ωmδ','⌖ℒ꙰ Δσφ','Σ∇ℵ꙱ Ψ̈','∮ℜΩ Λ∞','ꞓℑ⌗ Θβ'],
+};
+
+function pickLang(seed){
+  let h=0;
+  for(let i=0;i<seed.length;i++){h=(h*31+seed.charCodeAt(i))&0xffffffff;}
+  return languages[Math.abs(h)%languages.length];
+}
+function pickAuthor(style,seed){
+  const pool=authorsByStyle[style]||authorsByStyle.hispanic;
+  let h=0;
+  for(let i=0;i<seed.length;i++){h=(h*17+seed.charCodeAt(i))&0xffffffff;}
+  return pool[Math.abs(h)%pool.length];
+}
+
+// ── RANDOM TOPICS ──
+const topics=[
+  'el último ser humano en recordar el color azul',
+  'una carta que atravesó el tiempo sin llegar',
+  'la ciudad que soñaron y nunca construyeron',
+  'el momento exacto en que alguien decidió olvidar',
+  'el animal que guarda el nombre secreto del universo',
+  'la conversación entre dos estrellas que agonizaban',
+  'el invento que lo habría cambiado todo',
+  'una memoria que pertenece a alguien que aún no nació',
+  'el día en que el lenguaje dejó de alcanzar',
+  'el espejo que recordaba lo que nadie más recordaba',
+  'el último libro que quedó sin ser leído',
+  'el nombre que un dios olvidó pronunciar',
+];
+
+// ── GUTENBERG ──
+async function fetchGutenberg(tema){
+  try{
+    const url=`https://gutendex.com/books/?search=${encodeURIComponent(tema)}&languages=en,es,fr,de,it,pt&mime_type=text/plain`;
+    const res=await fetch(url);
+    const data=await res.json();
+    if(!data.results?.length) return null;
+    const book=data.results[Math.floor(Math.random()*Math.min(5,data.results.length))];
+    const textUrl=Object.values(book.formats||{}).find(u=>u.includes('plain')&&!u.includes('zip'));
+    if(!textUrl) return null;
+    const textRes=await fetch(textUrl);
+    const fullText=await textRes.text();
+    // Extract a meaningful passage (skip header, take ~500 words from middle)
+    const clean=fullText.replace(/^[\s\S]{0,3000}?\*\*\*/,'').replace(/\r\n/g,'\n').trim();
+    const words=clean.split(/\s+/);
+    const start=Math.floor(words.length*0.2);
+    const passage=words.slice(start,start+350).join(' ');
+    return{
+      title:book.title,
+      author:book.authors?.[0]?.name||'Anónimo',
+      lang:book.languages?.[0]||'en',
+      passage:passage,
+      isReal:true,
+    };
+  }catch(e){return null;}
+}
+
+// ── GENERATE via Groq (Netlify function) ──
+const genreMap={
+  cuento:'un cuento de entre 400 y 520 palabras con principio, nudo y desenlace',
+  poema:'un poema de entre 20 y 30 versos en estrofas, con ritmo interior deliberado',
+  ensayo:'un ensayo de entre 380 y 480 palabras, filosófico y concreto',
+  enciclopedia:'una entrada enciclopédica de entre 300 y 420 palabras, como si viniera de una enciclopedia antigua o de una civilización desconocida',
+  fragmento:'el fragmento inicial de una novela (400–520 palabras) que establezca mundo, personaje y tensión sin resolverla',
+  carta:'una carta de entre 280 y 400 palabras entre dos personajes ficticios que revele algo irreversible',
+  diario:'una entrada de diario (280–400 palabras) íntima, en primera persona, con fecha inventada y un secreto implícito',
+};
+
+async function generateGroq(tema,lang,author,genre){
+  const instruction=genreMap[genre]||genreMap.cuento;
+  const isFictional=lang.fictional;
+  const langInstruction=isFictional
+    ? `Escribe el texto en ${lang.name}. Si es Borgesiano o Soláresit, inventa un sistema de símbolos y letras consistente. Si es Éfico/Klingon/Dothraki/Alto Valyrio, usa ese idioma lo más fielmente posible mezclado con invención coherente. SIEMPRE incluye una traducción al español después, separada por la línea: "— Traducción —"`
+    : lang.code==='es'
+      ? 'Escribe en español.'
+      : `Escribe el texto en ${lang.name}. Incluye una traducción al español después, separada por la línea: "— Traducción —"`;
+
+  const prompt=`Eres un escritor de la Biblioteca de Babel. Tu nombre de autor es ${author}.
+
+REGLAS:
+- Primera línea: solo el título (en el idioma indicado)
+- Línea en blanco
+- El texto de la obra
+- ${langInstruction}
+- Sin introducciones ni explicaciones fuera de la obra misma
+- Sin firma al final
+
+La persona busca: "${tema}"
+Escribe ${instruction} sobre este tema.`;
+
+  try{
+    const res=await fetch('/.netlify/functions/generate',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({tema,genre:genre==='fragmento'?'fragmento de novela':genre,prompt}),
+    });
+    const data=await res.json();
+    if(data.error) return null;
+    return data.text||null;
+  }catch(e){return null;}
+}
+
+// ── SPLIT PAGES ──
+function splitPages(text){
+  const paras=text.split(/\n\n+/);
+  if(paras.length<2) return[text,''];
+  const totalW=text.split(/\s+/).length;
+  let left='',lw=0;
+  const half=totalW/2;
+  for(let i=0;i<paras.length;i++){
+    const pw=paras[i].split(/\s+/).length;
+    if(lw+pw<=half+40){left+=(left?'\n\n':'')+paras[i];lw+=pw;}
+    else break;
+  }
+  const used=left.split(/\n\n+/).length;
+  return[left.trim(),paras.slice(used).join('\n\n').trim()];
+}
+
+// ── CANDLE REVEAL ──
+function candleReveal(el,text,dur=5000){
+  el.textContent=text;
+  el.style.cssText=`mask-image:linear-gradient(to bottom,black 0%,transparent 100%);
+    -webkit-mask-image:linear-gradient(to bottom,black 0%,transparent 100%);
+    mask-size:100% 200%;-webkit-mask-size:100% 200%;
+    mask-position:0 -100%;-webkit-mask-position:0 -100%;
+    transition:mask-position ${dur}ms linear,-webkit-mask-position ${dur}ms linear;
+    white-space:pre-wrap;`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    el.style.maskPosition='0 100%';
+    el.style.webkitMaskPosition='0 100%';
+  }));
+}
+
+// ── NARRATOR TEXT ──
+const narLines=[
+  c=>`He recorrido incontables noches estas galerías para encontrarte. La sala ${String(c.sala).padStart(6,'0')}, piso ${c.piso>=0?'+'+c.piso:c.piso}. Aquí existe lo que buscas.`,
+  c=>`En el estante ${c.est} del volumen ${c.vol}, página ${c.pag}. Hay algo que siempre estuvo esperando ser leído. La biblioteca no crea — contiene.`,
+  c=>`La obra que encontrarás nunca fue escrita. Siempre existió. Eso es lo que significa que la biblioteca sea infinita. Sala ${String(c.sala).padStart(6,'0')}.`,
+];
+
+// ── LOADING MESSAGES ──
+const lmsgs=[
+  'El bibliotecario recorre las galerías…',
+  'Consultando el catálogo de catálogos…',
+  'La obra siempre existió. Solo falta encontrarla…',
+  'Polvo de siglos, tintas antiguas…',
+  'Descifrado el idioma samoyedo-lituano del guaraní…',
+  'Traducciones en proceso desde lenguas extintas…',
+  'Atravesando el hexágono carmesí…',
+];
+
+// ── MAIN FLOW ──
+async function seekBook(tema,wander=false){
+  const actualTema=wander?topics[Math.floor(Math.random()*topics.length)]:tema;
+  lastTema=actualTema;
+  const seed=actualTema+genre+Date.now();
+  lastSeed=seed;
+  const coords=makeCoords(seed);
+  const lang=pickLang(seed);
+  const author=pickAuthor(lang.authorStyle,seed+'author');
+
+  // Narrator
+  const line=narLines[Math.floor(Math.random()*narLines.length)](coords);
+  document.getElementById('nt').textContent='';
+  document.getElementById('ncoords').textContent=fmtC(coords);
+  go('scr-narrate');
+  let ni=0;
+  const ntEl=document.getElementById('nt');
+  const ti=setInterval(()=>{
+    if(ni<line.length){ntEl.textContent+=line[ni++];}else clearInterval(ti);
+  },34);
+  await delay(3600);
+
+  // Loading
+  go('scr-loading');
+  let lmi=0;
+  const lmEl=document.getElementById('lmsg');
+  const lInt=setInterval(()=>{lmi=(lmi+1)%lmsgs.length;lmEl.textContent=lmsgs[lmi];},1900);
+
+  // Decide: Gutenberg (40%) or Generate (60%)
+  const useGutenberg=Math.random()<0.4;
+  let title='',bodyL='',bodyR='',translL='',translR='',sourceText='',authorText=author,langName=lang.name,isReal=false;
+
+  if(useGutenberg){
+    const gb=await fetchGutenberg(actualTema);
+    if(gb){
+      title=gb.title;
+      authorText=gb.author;
+      isReal=true;
+      sourceText='Proyecto Gutenberg · dominio público';
+      langName=gb.lang.toUpperCase();
+      const[l,r]=splitPages(gb.passage);
+      bodyL=l; bodyR=r;
+      // Translation via Groq
+      const translPrompt=`Traduce al español este fragmento de manera literaria, fluida y fiel al original. Solo la traducción, sin explicaciones:\n\n${gb.passage.slice(0,1200)}`;
+      try{
+        const tr=await fetch('/.netlify/functions/generate',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({tema:translPrompt,genre:'traduccion',prompt:translPrompt}),
+        });
+        const td=await tr.json();
+        const translText=td.text||'';
+        const[tl,trr]=splitPages(translText);
+        translL=tl; translR=trr;
+      }catch(e){}
+    }
+  }
+
+  // Fallback or generated
+  if(!isReal){
+    const raw=await generateGroq(actualTema,lang,author,genre)||`Sin título\n\n[La obra se perdió entre las galerías.]`;
+    // Separate original and translation
+    const parts=raw.split(/—\s*Traducción\s*—/i);
+    const original=parts[0].trim();
+    const rawLines=original.split('\n');
+    title=rawLines[0];
+    const body=rawLines.slice(1).join('\n').replace(/^\n+/,'').trim();
+    const[l,r]=splitPages(body);
+    bodyL=l; bodyR=r;
+    if(parts[1]){
+      const[tl,tr]=splitPages(parts[1].trim());
+      translL=tl; translR=tr;
+    }
+    sourceText='Generado · siempre existió en esta biblioteca';
+  }
+
+  clearInterval(lInt);
+
+  // Populate UI
+  document.getElementById('btitle-text').textContent=title;
+  document.getElementById('bsource-text').textContent=sourceText+' · ';
+  document.getElementById('lang-badge').textContent=langName;
+  document.getElementById('glabel').textContent=genre;
+  document.getElementById('glabel-r').textContent=genre;
+  document.getElementById('pnl').textContent=`p. ${coords.pag}`;
+  document.getElementById('pnr').textContent=`p. ${coords.pag+1}`;
+  document.getElementById('cl').textContent=fmtC(coords);
+  document.getElementById('pauthor').textContent=authorText;
+  document.getElementById('rstatus').textContent=
+    `${Math.ceil((bodyL+bodyR).split(' ').length/200)} min · ${(bodyL+bodyR).split(' ').length} palabras`;
+
+  go('scr-book');
+  candleReveal(document.getElementById('tl'),bodyL,5500);
+  await delay(700);
+  candleReveal(document.getElementById('tr'),bodyR,5500);
+
+  // Translation
+  if(translL){
+    const tlEl=document.getElementById('transl');
+    const trEl=document.getElementById('transr');
+    tlEl.style.display='block'; trEl.style.display='block';
+    await delay(2000);
+    candleReveal(tlEl,translL,4000);
+    candleReveal(trEl,translR,4000);
+  } else {
+    document.getElementById('transl').style.display='none';
+    document.getElementById('transr').style.display='none';
+  }
+}
+
+// ── EVENTS ──
+document.getElementById('btn-seek').addEventListener('click',()=>{
+  const v=document.getElementById('q').value.trim();
+  if(!v){document.getElementById('q').focus();return;}
+  seekBook(v,false);
+});
+document.getElementById('btn-wander').addEventListener('click',()=>seekBook('',true));
+document.getElementById('q').addEventListener('keydown',e=>{
+  if(e.key==='Enter') document.getElementById('btn-seek').click();
+});
+document.getElementById('btn-prev').addEventListener('click',()=>{
+  if(!lastTema) return; seekBook(lastTema+'_b',false);
+});
+document.getElementById('btn-next').addEventListener('click',()=>{
+  if(!lastTema) return; seekBook(lastTema+'_f',false);
+});
+document.getElementById('btn-home').addEventListener('click',()=>go('scr-intro'));
+
+// ── FLOAT QUOTES ──
+const quotes=[
+  '"La Biblioteca es una esfera cuyo centro cabal es cualquier hexágono, cuya circunferencia es inaccesible."',
+  '"Todo: la historia minuciosa del porvenir, las autobiografías de los arcángeles."',
+  '"La certidumbre de que todo está escrito nos anula o nos afantasma."',
+  '"Nadie puede articular una sílaba que no esté llena de ternuras y de temores."',
+  '"La Biblioteca es ilimitada y periódica."',
+  '"No puedo combinar unos caracteres que la divina Biblioteca no haya previsto."',
+];
+let qi=0;
+document.getElementById('fqp').textContent=quotes[0];
+setInterval(()=>{
+  const fq=document.getElementById('fquote');
+  fq.style.opacity='0';
+  setTimeout(()=>{qi=(qi+1)%quotes.length;
+    document.getElementById('fqp').textContent=quotes[qi];fq.style.opacity='0.16';},1200);
+},9000);
+
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+</script>
+</body>
+</html>
