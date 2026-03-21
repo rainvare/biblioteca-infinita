@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>La Biblioteca de Babel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --everglade: #264431;
+  --upnorth: #719687;
+  --diving: #5A94A7;
+  --veil: #BED9EB;
+  --gilded: #EAA043;
+  --veil-light: #daeef8;
+  --veil-pale: #f0f8fc;
+  --text-dark: #1a2e22;
+  --text-mid: #2d4a3a;
+  --text-light: #4a7060;
+  --white: #ffffff;
+  --shadow: rgba(38,68,49,0.12);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { font-size:16px; scroll-behavior:smooth; }
+body {
+  font-family:'DM Sans', sans-serif;
+  background:var(--veil-pale);
+  color:var(--text-dark);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--upnorth); border-radius:2px; }
+
+/* ── SVG BACKGROUND SCENE ── */
+#svg-scene {
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  overflow:hidden;
+}
+#svg-scene svg {
+  width:100%; height:100%;
+  opacity:0; animation:sceneFade 2s 0.5s ease forwards;
+}
+@keyframes sceneFade { to { opacity:1; } }
+
+/* Hexagon grid animation */
+.hex-shape {
+  fill:none;
+  stroke-width:0.8;
+  animation:hexFloat linear infinite;
+}
+@keyframes hexFloat {
+  0%   { transform:translateY(0px) rotate(0deg); opacity:0.6; }
+  50%  { opacity:1; }
+  100% { transform:translateY(-40px) rotate(3deg); opacity:0.6; }
+}
+
+/* ── MAIN LAYOUT ── */
+#app {
+  position:relative; z-index:1;
+  min-height:100vh;
+  display:flex; flex-direction:column;
+}
+
+/* ── HERO ── */
+#hero {
+  min-height:100svh;
+  display:flex; flex-direction:column;
+  justify-content:center; align-items:center;
+  padding:clamp(60px,12vw,100px) clamp(20px,6vw,60px) clamp(40px,8vw,60px);
+  position:relative; overflow:hidden;
+  text-align:center;
+}
+
+/* Decorative hexagon rings */
+.hex-ring {
+  position:absolute; border-radius:4px;
+  border:1px solid;
+  opacity:0;
+  animation:ringReveal 1.2s ease forwards;
+}
+@keyframes ringReveal {
+  from { opacity:0; transform:scale(0.8) rotate(-5deg); }
+  to   { opacity:1; transform:scale(1) rotate(0deg); }
+}
+
+.eyebrow {
+  font-family:'DM Sans', sans-serif;
+  font-size:clamp(0.62rem,1.5vw,0.72rem);
+  font-weight:500;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:var(--upnorth);
+  margin-bottom:clamp(14px,3vw,20px);
+  animation:slideUp 0.8s 0.3s both;
+}
+
+h1.display {
+  font-family:'Playfair Display', serif;
+  font-size:clamp(2.4rem,8vw,5.5rem);
+  font-weight:400;
+  line-height:1.05;
+  color:var(--everglade);
+  letter-spacing:-0.02em;
+  margin-bottom:clamp(16px,3vw,24px);
+  animation:slideUp 0.9s 0.45s both;
+}
+h1.display em {
+  font-style:italic;
+  color:var(--diving);
+}
+
+.hero-sub {
+  font-family:'Lora', serif;
+  font-style:italic;
+  font-size:clamp(0.9rem,2.2vw,1.1rem);
+  color:var(--text-light);
+  max-width:480px;
+  line-height:1.8;
+  margin-bottom:clamp(32px,6vw,48px);
+  animation:slideUp 0.9s 0.6s both;
+}
+
+/* CTA button */
+.cta {
+  display:inline-flex; align-items:center; gap:10px;
+  font-family:'DM Sans', sans-serif;
+  font-size:clamp(0.82rem,2vw,0.92rem);
+  font-weight:500;
+  letter-spacing:0.06em;
+  color:var(--white);
+  background:var(--everglade);
+  border:none; border-radius:100px;
+  padding:clamp(12px,3vw,16px) clamp(24px,5vw,32px);
+  cursor:pointer;
+  transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow:0 4px 20px rgba(38,68,49,0.25);
+  animation:slideUp 0.9s 0.75s both;
+  position:relative; overflow:hidden;
+}
+.cta::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent);
+  border-radius:100px;
+}
+.cta:hover {
+  transform:translateY(-3px) scale(1.02);
+  box-shadow:0 8px 30px rgba(38,68,49,0.35);
+  background:var(--text-mid);
+}
+.cta:active { transform:scale(0.98); }
+
+.cta-wander {
+  background:transparent;
+  color:var(--diving);
+  border:1.5px solid rgba(90,148,167,0.35);
+  box-shadow:none;
+}
+.cta-wander:hover {
+  background:rgba(90,148,167,0.08);
+  border-color:var(--diving);
+  box-shadow:0 4px 16px rgba(90,148,167,0.15);
+}
+
+.hero-btns {
+  display:flex; gap:12px; flex-wrap:wrap; justify-content:center;
+  animation:slideUp 0.9s 0.75s both;
+}
+
+/* Scroll indicator */
+.scroll-ind {
+  position:absolute; bottom:28px; left:50%; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  opacity:0; animation:fadeIn 1s 2s both;
+}
+.scroll-ind span {
+  font-size:0.62rem; letter-spacing:0.2em; text-transform:uppercase;
+  color:var(--upnorth); font-weight:500;
+}
+.scroll-line {
+  width:1px; height:32px;
+  background:linear-gradient(to bottom, var(--upnorth), transparent);
+  animation:scrollPulse 2s ease infinite;
+}
+@keyframes scrollPulse { 0%,100%{opacity:0.3;transform:scaleY(0.6)} 50%{opacity:1;transform:scaleY(1)} }
+
+@keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+
+/* ── NARRATIVE SECTION ── */
+#narrative {
+  padding:clamp(60px,10vw,100px) clamp(20px,6vw,48px);
+  max-width:760px; margin:0 auto; width:100%;
+}
+
+.section-tag {
+  display:inline-block;
+  font-size:0.65rem; font-weight:500; letter-spacing:0.2em;
+  text-transform:uppercase; color:var(--white);
+  background:var(--diving);
+  padding:4px 14px; border-radius:100px;
+  margin-bottom:20px;
+}
+
+.borges-quote {
+  font-family:'Playfair Display', serif;
+  font-size:clamp(1.3rem,3.5vw,2rem);
+  font-weight:400; font-style:italic;
+  color:var(--everglade);
+  line-height:1.55;
+  border-left:3px solid var(--gilded);
+  padding-left:clamp(16px,4vw,28px);
+  margin-bottom:clamp(28px,5vw,40px);
+}
+
+.narrative-text {
+  font-family:'Lora', serif;
+  font-size:clamp(0.95rem,2.2vw,1.05rem);
+  color:var(--text-mid);
+  line-height:1.95;
+  margin-bottom:28px;
+}
+.narrative-text strong {
+  color:var(--everglade); font-weight:500;
+}
+
+/* Hex coordinate display */
+.coord-display {
+  display:flex; gap:clamp(8px,2vw,16px); flex-wrap:wrap;
+  margin:clamp(28px,5vw,40px) 0;
+}
+.coord-pill {
+  background:var(--veil-light);
+  border:1px solid rgba(90,148,167,0.25);
+  border-radius:10px;
+  padding:10px 16px;
+  display:flex; flex-direction:column; gap:2px;
+}
+.coord-pill .coord-label {
+  font-size:0.6rem; font-weight:500; letter-spacing:0.15em;
+  text-transform:uppercase; color:var(--upnorth);
+}
+.coord-pill .coord-value {
+  font-family:'DM Sans', sans-serif;
+  font-size:0.88rem; font-weight:500;
+  color:var(--everglade);
+  letter-spacing:0.04em;
+}
+
+/* Divider */
+.section-divider {
+  display:flex; align-items:center; gap:16px;
+  margin:clamp(40px,8vw,64px) 0;
+}
+.section-divider::before, .section-divider::after {
+  content:''; flex:1; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(90,148,167,0.3), transparent);
+}
+.section-divider span {
+  font-size:1rem; color:var(--diving); opacity:0.6;
+}
+
+/* ── SEARCH AREA ── */
+#search-section {
+  background:var(--white);
+  border-radius:24px;
+  padding:clamp(24px,5vw,40px);
+  margin-bottom:clamp(24px,5vw,36px);
+  box-shadow:0 2px 40px rgba(38,68,49,0.08),
+             0 0 0 1px rgba(90,148,167,0.12);
+  position:relative; overflow:hidden;
+}
+#search-section::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--everglade), var(--diving), var(--gilded));
+}
+
+.search-heading {
+  font-family:'Playfair Display', serif;
+  font-size:clamp(1.1rem,3vw,1.4rem);
+  font-weight:400; color:var(--everglade);
+  margin-bottom:6px;
+}
+.search-sub {
+  font-family:'Lora', serif; font-style:italic;
+  font-size:0.85rem; color:var(--text-light);
+  margin-bottom:clamp(16px,4vw,24px);
+}
+
+.search-input-wrap {
+  position:relative; margin-bottom:16px;
+}
+.search-input-wrap svg {
+  position:absolute; left:16px; top:50%; transform:translateY(-50%);
+  pointer-events:none;
+}
+#q {
+  width:100%;
+  font-family:'Lora', serif; font-style:italic;
+  font-size:clamp(0.95rem,2vw,1.05rem);
+  color:var(--text-dark);
+  background:var(--veil-pale);
+  border:1.5px solid rgba(90,148,167,0.2);
+  border-radius:14px;
+  padding:clamp(12px,3vw,16px) 16px clamp(12px,3vw,16px) 48px;
+  outline:none;
+  transition:border-color 0.25s, box-shadow 0.25s, background 0.25s;
+  -webkit-appearance:none;
+}
+#q::placeholder { color:rgba(74,112,96,0.4); }
+#q:focus {
+  border-color:var(--diving);
+  box-shadow:0 0 0 4px rgba(90,148,167,0.1);
+  background:var(--white);
+}
+
+/* Genre pills */
+.genres {
+  display:flex; flex-wrap:wrap; gap:7px; margin-bottom:clamp(16px,4vw,22px);
+}
+.gpill {
+  font-family:'DM Sans', sans-serif;
+  font-size:0.76rem; font-weight:400;
+  color:var(--text-light);
+  background:var(--veil-pale);
+  border:1.5px solid rgba(90,148,167,0.2);
+  border-radius:100px; padding:6px 14px;
+  cursor:pointer; transition:all 0.2s;
+  -webkit-appearance:none;
+}
+.gpill:hover { border-color:var(--diving); color:var(--diving); }
+.gpill.on {
+  background:var(--everglade); color:var(--white);
+  border-color:var(--everglade);
+  box-shadow:0 2px 8px rgba(38,68,49,0.2);
+}
+
+.search-actions {
+  display:flex; gap:10px; flex-wrap:wrap;
+}
+.sa-btn {
+  flex:1; min-width:120px;
+  font-family:'DM Sans', sans-serif;
+  font-size:0.82rem; font-weight:500;
+  letter-spacing:0.04em;
+  border-radius:12px; padding:13px 16px;
+  cursor:pointer; transition:all 0.25s;
+  border:none; text-align:center;
+  -webkit-appearance:none;
+}
+.sa-seek {
+  background:var(--everglade); color:var(--white);
+  box-shadow:0 4px 14px rgba(38,68,49,0.25);
+}
+.sa-seek:hover { background:var(--text-mid); transform:translateY(-1px); box-shadow:0 6px 20px rgba(38,68,49,0.3); }
+.sa-wander {
+  background:rgba(90,148,167,0.1); color:var(--diving);
+  border:1.5px solid rgba(90,148,167,0.25);
+}
+.sa-wander:hover { background:rgba(90,148,167,0.18); }
+.sa-btn:active { transform:scale(0.97); }
+
+/* ── INFO CARDS ── */
+.info-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(min(100%,200px),1fr));
+  gap:clamp(10px,2.5vw,16px);
+  margin-top:clamp(24px,5vw,36px);
+}
+.info-card {
+  background:var(--white);
+  border-radius:16px;
+  padding:clamp(16px,3.5vw,22px);
+  border:1px solid rgba(90,148,167,0.14);
+  box-shadow:0 2px 16px rgba(38,68,49,0.05);
+  transition:transform 0.25s, box-shadow 0.25s;
+}
+.info-card:hover { transform:translateY(-3px); box-shadow:0 8px 30px rgba(38,68,49,0.1); }
+.card-icon {
+  width:36px; height:36px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.1rem; margin-bottom:10px;
+}
+.card-title {
+  font-family:'DM Sans', sans-serif; font-size:0.8rem;
+  font-weight:500; color:var(--everglade); margin-bottom:4px;
+}
+.card-desc {
+  font-size:0.74rem; color:var(--text-light); line-height:1.55;
+}
+
+/* ── NARRATOR OVERLAY ── */
+#narr {
+  position:fixed; inset:0; z-index:100;
+  display:flex; align-items:center; justify-content:center;
+  padding:clamp(24px,6vw,48px);
+  background:rgba(26,46,34,0.88);
+  backdrop-filter:blur(20px);
+  opacity:0; pointer-events:none;
+  transition:opacity 0.6s;
+}
+#narr.on { opacity:1; pointer-events:all; }
+#narr-inner { max-width:520px; text-align:center; }
+.narr-hex {
+  width:64px; height:64px; margin:0 auto 24px;
+  animation:hexSpin 8s linear infinite;
+}
+@keyframes hexSpin { to { transform:rotate(360deg); } }
+#narr-text {
+  font-family:'Playfair Display', serif; font-style:italic;
+  font-size:clamp(1rem,2.5vw,1.25rem);
+  color:var(--veil); line-height:2;
+}
+#narr-coords {
+  font-size:0.65rem; color:rgba(190,217,235,0.45);
+  letter-spacing:0.14em; margin-top:16px;
+  font-family:'DM Sans', sans-serif; font-weight:500;
+}
+
+/* ── LOADING ── */
+#loading {
+  position:fixed; inset:0; z-index:101;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:20px;
+  background:var(--veil-pale);
+  opacity:0; pointer-events:none; transition:opacity 0.4s;
+}
+#loading.on { opacity:1; pointer-events:all; }
+.l-hex-loader {
+  width:56px; height:56px;
+  animation:hexSpin 2s linear infinite;
+}
+#lmsg {
+  font-family:'Lora', serif; font-style:italic;
+  font-size:1rem; color:var(--text-light);
+  max-width:260px; text-align:center; line-height:1.9;
+  animation:breathe 2.5s ease infinite;
+}
+@keyframes breathe { 0%,100%{opacity:0.4} 50%{opacity:1} }
+.l-track {
+  width:160px; height:2px;
+  background:rgba(90,148,167,0.15); border-radius:1px; overflow:hidden;
+}
+.l-fill {
+  height:100%;
+  background:linear-gradient(90deg, var(--everglade), var(--diving));
+  animation:lfill 2s ease infinite;
+}
+@keyframes lfill { 0%{width:0;margin-left:0} 50%{width:100%;margin-left:0} 100%{width:0;margin-left:100%} }
+
+/* ── BOOK VIEW ── */
+#bookview {
+  position:fixed; inset:0; z-index:102;
+  background:var(--veil-pale);
+  display:flex; flex-direction:column;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.5s;
+  overflow:hidden;
+}
+#bookview.on { opacity:1; pointer-events:all; }
+
+#bv-topbar {
+  flex-shrink:0;
+  display:flex; align-items:center; gap:12px;
+  padding:clamp(12px,3vw,16px) clamp(16px,5vw,24px);
+  background:var(--white);
+  border-bottom:1px solid rgba(90,148,167,0.12);
+  box-shadow:0 2px 12px rgba(38,68,49,0.06);
+}
+.bv-back {
+  width:36px; height:36px; border-radius:10px;
+  background:var(--veil-pale); border:1px solid rgba(90,148,167,0.18);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all 0.2s; flex-shrink:0;
+  color:var(--text-mid); font-size:1rem;
+}
+.bv-back:hover { background:var(--veil-light); border-color:var(--diving); }
+#bv-topbar-title {
+  font-family:'Playfair Display', serif; font-style:italic;
+  font-size:clamp(0.9rem,2.5vw,1.1rem); color:var(--everglade);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  flex:1;
+}
+
+#bv-scroll {
+  flex:1; overflow-y:auto; padding:clamp(24px,5vw,40px) clamp(16px,5vw,32px);
+  -webkit-overflow-scrolling:touch;
+}
+
+#bv-header {
+  margin-bottom:clamp(24px,5vw,36px);
+  padding-bottom:clamp(20px,4vw,28px);
+  border-bottom:1px solid rgba(90,148,167,0.15);
+}
+#bv-eyebrow {
+  font-size:0.62rem; font-weight:500; letter-spacing:0.2em;
+  text-transform:uppercase; color:var(--upnorth); margin-bottom:10px;
+}
+#bv-title {
+  font-family:'Playfair Display', serif;
+  font-size:clamp(1.4rem,5vw,2.2rem); font-weight:400;
+  color:var(--everglade); line-height:1.2;
+  margin-bottom:12px;
+}
+#bv-meta { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:10px; }
+.bv-tag {
+  font-size:0.65rem; font-weight:500;
+  color:var(--diving); letter-spacing:0.08em;
+  border:1px solid rgba(90,148,167,0.28); border-radius:100px;
+  padding:3px 12px; background:rgba(90,148,167,0.06);
+}
+#bv-author {
+  font-family:'Lora', serif; font-style:italic;
+  font-size:0.85rem; color:var(--text-light);
+}
+
+/* Coord bar */
+#bv-coords-bar {
+  background:var(--veil-light);
+  border:1px solid rgba(90,148,167,0.2);
+  border-radius:12px; padding:12px 16px;
+  margin-bottom:clamp(24px,5vw,32px);
+  display:flex; gap:16px; flex-wrap:wrap;
+}
+.coord-item { display:flex; flex-direction:column; gap:1px; }
+.ci-label { font-size:0.55rem; font-weight:500; letter-spacing:0.15em;
+  text-transform:uppercase; color:var(--upnorth); }
+.ci-val { font-size:0.82rem; font-weight:500; color:var(--everglade);
+  font-family:'DM Sans', sans-serif; }
+
+#bv-text {
+  font-family:'Lora', serif;
+  font-size:clamp(1rem,2.5vw,1.1rem);
+  color:var(--text-dark);
+  line-height:2.05;
+  white-space:pre-wrap;
+  letter-spacing:0.01em;
+  margin-bottom:clamp(28px,6vw,40px);
+}
+
+.trans-header {
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:20px; margin-top:clamp(28px,6vw,40px);
+}
+.trans-header::before, .trans-header::after {
+  content:''; flex:1; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(90,148,167,0.25),transparent);
+}
+.trans-title {
+  font-size:0.65rem; font-weight:500; letter-spacing:0.2em;
+  text-transform:uppercase; color:var(--upnorth); white-space:nowrap;
+}
+#bv-trans {
+  font-family:'Lora', serif; font-style:italic;
+  font-size:clamp(0.92rem,2.2vw,1rem);
+  color:var(--text-light); line-height:2; white-space:pre-wrap;
+}
+
+/* Bottom bar */
+#bv-bottom {
+  flex-shrink:0; padding:clamp(12px,3vw,16px) clamp(16px,5vw,24px) clamp(20px,5vw,28px);
+  background:var(--white); border-top:1px solid rgba(90,148,167,0.1);
+  display:flex; gap:10px;
+}
+.bb-btn {
+  flex:1; font-family:'DM Sans', sans-serif;
+  font-size:0.8rem; font-weight:500; letter-spacing:0.04em;
+  border-radius:12px; padding:13px; cursor:pointer;
+  transition:all 0.22s; text-align:center; border:none;
+  -webkit-appearance:none;
+}
+.bb-sec {
+  background:var(--veil-pale); color:var(--text-mid);
+  border:1.5px solid rgba(90,148,167,0.2);
+}
+.bb-sec:hover { background:var(--veil-light); }
+.bb-pri {
+  background:var(--everglade); color:var(--white);
+  box-shadow:0 4px 14px rgba(38,68,49,0.25);
+}
+.bb-pri:hover { background:var(--text-mid); }
+.bb-btn:active { transform:scale(0.97); }
+
+/* ── FOOTER ── */
+#footer {
+  padding:clamp(32px,7vw,56px) clamp(20px,6vw,48px);
+  text-align:center; border-top:1px solid rgba(90,148,167,0.12);
+  margin-top:clamp(40px,8vw,60px);
+}
+.footer-quote {
+  font-family:'Playfair Display', serif; font-style:italic;
+  font-size:clamp(0.85rem,2vw,1rem);
+  color:var(--text-light); line-height:1.8; max-width:520px;
+  margin:0 auto 12px;
+}
+.footer-attr {
+  font-size:0.68rem; color:var(--upnorth);
+  letter-spacing:0.12em; text-transform:uppercase;
+}
+
+/* Progress bar */
+#prog {
+  position:fixed; top:0; left:0; height:2px; z-index:200;
+  background:linear-gradient(90deg, var(--everglade), var(--diving), var(--gilded));
+  box-shadow:0 0 6px rgba(90,148,167,0.4);
+  transition:width 0.3s; width:0%;
+  pointer-events:none;
+}
+
+/* Floating quote chip */
+#fchip {
+  position:fixed; bottom:clamp(16px,4vw,24px); right:clamp(16px,4vw,24px);
+  z-index:10; max-width:min(220px,55vw);
+  pointer-events:none;
+}
+#fchip p {
+  font-family:'Lora', serif; font-style:italic;
+  font-size:clamp(0.62rem,1.5vw,0.7rem);
+  color:var(--text-mid); line-height:1.7;
+  background:rgba(255,255,255,0.88);
+  padding:10px 14px; border-radius:12px;
+  border:1px solid rgba(90,148,167,0.18);
+  backdrop-filter:blur(8px);
+  box-shadow:0 4px 16px rgba(38,68,49,0.08);
+  opacity:0; transition:opacity 1.2s;
+}
+#fchip p.vis { opacity:1; }
+</style>
+</head>
+<body>
+
+<div id="prog"></div>
+
+<!-- ── SVG SCENE ── -->
+<div id="svg-scene">
+  <svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice"
+       xmlns="http://www.w3.org/2000/svg">
+    <!-- Hexagonal grid — Borges library cells -->
+    <defs>
+      <pattern id="hexPat" x="0" y="0" width="60" height="69" patternUnits="userSpaceOnUse">
+        <polygon points="30,2 58,17 58,52 30,67 2,52 2,17"
+          fill="none" stroke="#5A94A7" stroke-width="0.5" opacity="0.18"/>
+      </pattern>
+      <!-- Radial glow -->
+      <radialGradient id="centerGlow" cx="50%" cy="45%" r="50%">
+        <stop offset="0%" stop-color="#BED9EB" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#BED9EB" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+
+    <!-- Full hex grid -->
+    <rect width="400" height="800" fill="url(#hexPat)"/>
+
+    <!-- Center glow -->
+    <ellipse cx="200" cy="360" rx="200" ry="220" fill="url(#centerGlow)"/>
+
+    <!-- Animated floating hexagons -->
+    <g class="hex-shape" style="animation-duration:8s;animation-delay:0s">
+      <polygon points="40,120 55,111 55,93 40,84 25,93 25,111"
+        stroke="#264431" stroke-width="1" fill="rgba(38,68,49,0.04)"/>
+    </g>
+    <g class="hex-shape" style="animation-duration:11s;animation-delay:2s">
+      <polygon points="340,200 362,188 362,164 340,152 318,164 318,188"
+        stroke="#5A94A7" stroke-width="1" fill="rgba(90,148,167,0.06)"/>
+    </g>
+    <g class="hex-shape" style="animation-duration:9s;animation-delay:4s">
+      <polygon points="60,450 78,440 78,420 60,410 42,420 42,440"
+        stroke="#EAA043" stroke-width="1.5" fill="rgba(234,160,67,0.06)"/>
+    </g>
+    <g class="hex-shape" style="animation-duration:13s;animation-delay:1s">
+      <polygon points="320,550 345,536 345,509 320,495 295,509 295,536"
+        stroke="#264431" stroke-width="0.8" fill="rgba(38,68,49,0.03)"/>
+    </g>
+    <g class="hex-shape" style="animation-duration:10s;animation-delay:3s">
+      <polygon points="180,680 200,669 200,647 180,636 160,647 160,669"
+        stroke="#5A94A7" stroke-width="1" fill="rgba(90,148,167,0.05)"/>
+    </g>
+    <g class="hex-shape" style="animation-duration:7s;animation-delay:5s">
+      <polygon points="100,300 118,290 118,270 100,260 82,270 82,290"
+        stroke="#EAA043" stroke-width="1" fill="rgba(234,160,67,0.04)"/>
+    </g>
+
+    <!-- Subtle vertical lines suggesting shelves/walls -->
+    <line x1="80" y1="0" x2="80" y2="800" stroke="#264431" stroke-width="0.3" opacity="0.08"/>
+    <line x1="320" y1="0" x2="320" y2="800" stroke="#264431" stroke-width="0.3" opacity="0.08"/>
+    <line x1="160" y1="0" x2="160" y2="800" stroke="#5A94A7" stroke-width="0.2" opacity="0.06"/>
+    <line x1="240" y1="0" x2="240" y2="800" stroke="#5A94A7" stroke-width="0.2" opacity="0.06"/>
+
+    <!-- Vanishing point convergence lines -->
+    <line x1="0" y1="0" x2="200" y2="400" stroke="#5A94A7" stroke-width="0.4" opacity="0.08"/>
+    <line x1="400" y1="0" x2="200" y2="400" stroke="#5A94A7" stroke-width="0.4" opacity="0.08"/>
+    <line x1="0" y1="800" x2="200" y2="400" stroke="#5A94A7" stroke-width="0.4" opacity="0.06"/>
+    <line x1="400" y1="800" x2="200" y2="400" stroke="#5A94A7" stroke-width="0.4" opacity="0.06"/>
+
+    <!-- Decorative circles -->
+    <circle cx="200" cy="400" r="120" fill="none" stroke="#BED9EB" stroke-width="0.6" opacity="0.25"/>
+    <circle cx="200" cy="400" r="180" fill="none" stroke="#BED9EB" stroke-width="0.4" opacity="0.15"/>
+  </svg>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+
+  <!-- HERO -->
+  <section id="hero">
+    <p class="eyebrow">Jorge Luis Borges · 1941</p>
+    <h1 class="display">La Biblioteca<br>de <em>Babel</em></h1>
+    <p class="hero-sub">
+      El universo (que otros llaman la Biblioteca) se compone de un número
+      indefinido, y tal vez infinito, de galerías hexagonales.
+    </p>
+    <div class="hero-btns">
+      <button class="cta" id="hero-seek">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M7 13A6 6 0 1 0 7 1a6 6 0 0 0 0 12ZM13 13l2 2" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Buscar en la biblioteca
+      </button>
+      <button class="cta cta-wander" id="hero-wander">◌ Dejarme perder</button>
+    </div>
+    <div class="scroll-ind">
+      <span>explorar</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- NARRATIVE -->
+  <section id="narrative">
+    <span class="section-tag">El universo</span>
+    <blockquote class="borges-quote">
+      "La Biblioteca es una esfera cuyo centro cabal es cualquier hexágono,
+      cuya circunferencia es inaccesible."
+    </blockquote>
+    <p class="narrative-text">
+      Cada galería contiene <strong>veinte anaqueles</strong>, a cinco largos anaqueles
+      por lado. Cada anaquel encierra <strong>treinta y dos libros</strong> de formato uniforme.
+      Cada libro, <strong>cuatrocientas diez páginas</strong>.
+    </p>
+    <p class="narrative-text">
+      Todo lo que puede ser expresado en veinticinco símbolos ortográficos ya existe
+      en algún volumen de esta biblioteca. <strong>Todo lo que puedes imaginar ya fue escrito.</strong>
+      Solo falta encontrarlo.
+    </p>
+
+    <div class="coord-display" id="coord-display">
+      <div class="coord-pill">
+        <span class="coord-label">Sala</span>
+        <span class="coord-value" id="cd-sala">——————</span>
+      </div>
+      <div class="coord-pill">
+        <span class="coord-label">Piso</span>
+        <span class="coord-value" id="cd-piso">——</span>
+      </div>
+      <div class="coord-pill">
+        <span class="coord-label">Anaquel</span>
+        <span class="coord-value" id="cd-est">—</span>
+      </div>
+      <div class="coord-pill">
+        <span class="coord-label">Volumen</span>
+        <span class="coord-value" id="cd-vol">——</span>
+      </div>
+      <div class="coord-pill">
+        <span class="coord-label">Página</span>
+        <span class="coord-value" id="cd-pag">———</span>
+      </div>
+    </div>
+
+    <div class="section-divider"><span>⬡</span></div>
+
+    <!-- SEARCH -->
+    <div id="search-section">
+      <h2 class="search-heading">¿Qué busca el viajero?</h2>
+      <p class="search-sub">El bibliotecario encontrará lo que siempre existió</p>
+
+      <div class="search-input-wrap">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="8" cy="8" r="6" stroke="#719687" stroke-width="1.5"/>
+          <path d="M13 13l3 3" stroke="#719687" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="q" placeholder="el nombre de lo que se perdió…"
+          autocomplete="off" spellcheck="false"/>
+      </div>
+
+      <div class="genres" id="genres">
+        <button class="gpill on" data-g="cuento">Cuento</button>
+        <button class="gpill" data-g="poema">Poema</button>
+        <button class="gpill" data-g="ensayo">Ensayo</button>
+        <button class="gpill" data-g="enciclopedia">Enciclopedia</button>
+        <button class="gpill" data-g="fragmento">Fragmento</button>
+        <button class="gpill" data-g="carta">Carta</button>
+        <button class="gpill" data-g="diario">Diario</button>
+      </div>
+
+      <div class="search-actions">
+        <button class="sa-btn sa-wander" id="sa-wander">◌ Dejarme perder</button>
+        <button class="sa-btn sa-seek" id="sa-seek">✦ Buscar la obra</button>
+      </div>
+    </div>
+
+    <!-- INFO CARDS -->
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="card-icon" style="background:rgba(38,68,49,0.08)">📚</div>
+        <div class="card-title">Textos del mundo</div>
+        <div class="card-desc">Literatura, ciencia y filosofía de dominio público. Lo encontrado siempre existió.</div>
+      </div>
+      <div class="info-card">
+        <div class="card-icon" style="background:rgba(90,148,167,0.1)">🌐</div>
+        <div class="card-title">15 Idiomas</div>
+        <div class="card-desc">Español, inglés, japonés, latín, Quenya, Klingon, Borgesiano y más lenguas reales y ficticias.</div>
+      </div>
+      <div class="info-card">
+        <div class="card-icon" style="background:rgba(234,160,67,0.1)">∞</div>
+        <div class="card-title">Infinita</div>
+        <div class="card-desc">Cada búsqueda genera coordenadas únicas y deterministas. La misma pregunta siempre encuentra la misma sala.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer id="footer">
+    <p class="footer-quote">
+      "La certidumbre de que todo está escrito nos anula o nos afantasma."
+    </p>
+    <p class="footer-attr">Jorge Luis Borges — La Biblioteca de Babel, 1941</p>
+  </footer>
+
+</div>
+
+<!-- ── NARRATOR ── -->
+<div id="narr">
+  <div id="narr-inner">
+    <svg class="narr-hex" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="32,4 60,19 60,45 32,60 4,45 4,19"
+        fill="none" stroke="#BED9EB" stroke-width="1.5" opacity="0.6"/>
+      <polygon points="32,14 52,25 52,39 32,50 12,39 12,25"
+        fill="none" stroke="#BED9EB" stroke-width="1"/>
+      <circle cx="32" cy="32" r="6" fill="#EAA043" opacity="0.8"/>
+    </svg>
+    <p id="narr-text"></p>
+    <p id="narr-coords"></p>
+  </div>
+</div>
+
+<!-- ── LOADING ── -->
+<div id="loading">
+  <svg class="l-hex-loader" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="28,3 53,17 53,39 28,53 3,39 3,17"
+      fill="none" stroke="#5A94A7" stroke-width="2" stroke-dasharray="6 3"
+      stroke-linecap="round"/>
+    <circle cx="28" cy="28" r="8" fill="none" stroke="#EAA043" stroke-width="2"/>
+  </svg>
+  <p id="lmsg">El bibliotecario recorre las galerías…</p>
+  <div class="l-track"><div class="l-fill"></div></div>
+</div>
+
+<!-- ── BOOK VIEW ── -->
+<div id="bookview">
+  <div id="bv-topbar">
+    <button class="bv-back" id="bv-back">←</button>
+    <div id="bv-topbar-title">—</div>
+  </div>
+  <div id="bv-scroll">
+    <div id="bv-header">
+      <div id="bv-eyebrow"></div>
+      <div id="bv-title"></div>
+      <div id="bv-meta"></div>
+      <div id="bv-author"></div>
+    </div>
+    <div id="bv-coords-bar">
+      <div class="coord-item"><span class="ci-label">Sala</span><span class="ci-val" id="bvc-sala">—</span></div>
+      <div class="coord-item"><span class="ci-label">Piso</span><span class="ci-val" id="bvc-piso">—</span></div>
+      <div class="coord-item"><span class="ci-label">Vol.</span><span class="ci-val" id="bvc-vol">—</span></div>
+      <div class="coord-item"><span class="ci-label">Pág.</span><span class="ci-val" id="bvc-pag">—</span></div>
+    </div>
+    <div id="bv-text"></div>
+    <div id="bv-trans-block" style="display:none">
+      <div class="trans-header"><span class="trans-title">Traducción al español</span></div>
+      <div id="bv-trans"></div>
+    </div>
+    <div style="height:24px"></div>
+  </div>
+  <div id="bv-bottom">
+    <button class="bb-btn bb-sec" id="bv-new">◌ Nueva obra</button>
+    <button class="bb-btn bb-pri" id="bv-wander">Dejarme perder</button>
+  </div>
+</div>
+
+<!-- FLOAT QUOTE CHIP -->
+<div id="fchip"><p id="fqp"></p></div>
+
+<script>
+// ── ANIMATE COORDS on load ──
+function animateCoords(c){
+  document.getElementById('cd-sala').textContent = String(c.sala).padStart(6,'0');
+  document.getElementById('cd-piso').textContent = (c.piso>=0?'+':'')+c.piso;
+  document.getElementById('cd-est').textContent  = c.est;
+  document.getElementById('cd-vol').textContent  = c.vol;
+  document.getElementById('cd-pag').textContent  = c.pag;
+}
+// Show a random coordinate on load
+setTimeout(()=>animateCoords(makeCoords('biblioteca'+Date.now())),800);
+setInterval(()=>animateCoords(makeCoords(Math.random().toString())),6000);
+
+// ── GENRE ──
+let genre = 'cuento';
+document.getElementById('genres').querySelectorAll('.gpill').forEach(p=>{
+  p.addEventListener('click',()=>{
+    document.querySelectorAll('.gpill').forEach(x=>x.classList.remove('on'));
+    p.classList.add('on'); genre=p.dataset.g;
+  });
+});
+
+// ── HERO BUTTONS ──
+document.getElementById('hero-seek').addEventListener('click',()=>{
+  document.getElementById('q').focus();
+  document.getElementById('search-section').scrollIntoView({behavior:'smooth',block:'center'});
+});
+document.getElementById('hero-wander').addEventListener('click',()=>seekBook('',true));
+
+// ── SEARCH ──
+document.getElementById('sa-seek').addEventListener('click',()=>{
+  const v=document.getElementById('q').value.trim();
+  if(!v){document.getElementById('q').focus();return;}
+  seekBook(v,false);
+});
+document.getElementById('sa-wander').addEventListener('click',()=>seekBook('',true));
+document.getElementById('q').addEventListener('keydown',e=>{
+  if(e.key==='Enter') document.getElementById('sa-seek').click();
+});
+
+// ── BOOK BACK ──
+document.getElementById('bv-back').addEventListener('click',()=>{
+  document.getElementById('bookview').classList.remove('on');
+});
+document.getElementById('bv-new').addEventListener('click',()=>{
+  document.getElementById('bookview').classList.remove('on');
+  document.getElementById('search-section').scrollIntoView({behavior:'smooth',block:'center'});
+});
+document.getElementById('bv-wander').addEventListener('click',()=>{
+  document.getElementById('bookview').classList.remove('on');
+  seekBook('',true);
+});
+
+// ── DATA ──
+const topics=['el último ser humano en recordar el color azul','una carta que atravesó el tiempo sin llegar','la ciudad que soñaron y nunca construyeron','el momento en que alguien decidió olvidar','el animal que guarda el nombre secreto del universo','la conversación entre dos estrellas que agonizaban','una memoria que pertenece a alguien que aún no nació','el nombre que un dios olvidó pronunciar','el libro que nadie pudo terminar de leer','el idioma que hablaban antes del primer idioma'];
+const langs=[{code:'es',name:'Español',style:'hispanic'},{code:'en',name:'English',style:'english'},{code:'fr',name:'Français',style:'french'},{code:'de',name:'Deutsch',style:'german'},{code:'it',name:'Italiano',style:'italian'},{code:'pt',name:'Português',style:'portuguese'},{code:'ru',name:'Русский',style:'russian'},{code:'ar',name:'العربية',style:'arabic'},{code:'ja',name:'日本語',style:'japanese'},{code:'zh',name:'中文',style:'chinese'},{code:'la',name:'Lingua Latina',style:'latin'},{code:'el',name:'Ελληνικά',style:'greek'},{code:'qya',name:'Quenya',style:'elvish',fictional:true},{code:'tlh',name:'Klingon',style:'klingon',fictional:true},{code:'brg',name:'Borgesiano',style:'borgesiano',fictional:true}];
+const authors={hispanic:['Jorge Medina','Elena Vargas','Carlos Fuentes','Isabel Ríos'],english:['Arthur Pemberton','Eleanor Marsh','Thomas Whitfield','Clara Holt'],french:['Étienne Moreau','Céleste Dupont','Armand Lefèvre'],german:['Friedrich Kellner','Ingrid Schäfer','Wolfgang Braun'],italian:['Lorenzo Ferretti','Giovanna Esposito','Marco Ricci'],portuguese:['António Figueiredo','Beatriz Sousa','Rui Carvalho'],russian:['Алексей Соколов','Наталья Волкова','Дмитрий Козлов'],arabic:['عمر الفاروق','ليلى النجار','محمد الشرقي'],japanese:['中村 哲也','山田 美咲','田中 修一'],chinese:['陈志远','李月华','王明道'],latin:['Marcus Aurelius Vindex','Gaius Pontifex','Lucia Cornelia'],greek:['Αριστείδης Παπαδόπουλος','Ελένη Νικολάου'],elvish:['Galadriel Celeborn','Ithildin Anarion','Eärwen Noldorin'],klingon:["Qa'vIn HoD","toH'vor vestai"],borgesiano:['ꞧ꙳ℵ Ωmδ','⌖ℒ꙰ Δσφ','Σ∇ℵ꙱ Ψ̈']};
+
+function pickLang(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))&0xffffffff;return langs[Math.abs(h)%langs.length];}
+function pickAuthor(st,s){const p=authors[st]||authors.hispanic;let h=0;for(let i=0;i<s.length;i++)h=(h*17+s.charCodeAt(i))&0xffffffff;return p[Math.abs(h)%p.length];}
+function makeCoords(s){let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return{sala:(h%999983)+1,piso:((h>>8)%40)-20,est:((h>>16)%4)+1,vol:((h>>20)%32)+1,pag:((h>>24)%410)+1};}
+
+const narLines=[
+  c=>`He recorrido estas galerías durante noches innumerables para encontrarte. La sala ${String(c.sala).padStart(6,'0')}, piso ${c.piso>=0?'+':''} ${c.piso}. Aquí existe lo que buscas.`,
+  c=>`En el volumen ${c.vol}, página ${c.pag}. Hay algo que siempre estuvo esperando ser leído. La biblioteca no crea. Contiene.`,
+  c=>`Lo que encontrarás nunca fue escrito. Siempre existió. Sala ${String(c.sala).padStart(6,'0')}.`,
+];
+const lmsgs=['El bibliotecario recorre las galerías…','Consultando el catálogo de catálogos…','La obra siempre existió. Solo falta encontrarla…','Descifrado el idioma samoyedo-lituano del guaraní…','Atravesando el hexágono carmesí…','Polvo de siglos, tintas antiguas…','Cruzando la sala del hexágono carmesí…','Buscando entre lenguas extintas…'];
+
+async function callBackend(payload){
+  try{
+    const res=await fetch('/.netlify/functions/generate',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),
+    });
+    return await res.json();
+  }catch(e){return{error:e.message};}
+}
+
+async function seekBook(tema,wander){
+  const actualTema=wander?topics[Math.floor(Math.random()*topics.length)]:tema;
+  const seed=actualTema+genre+Math.random();
+  const coords=makeCoords(seed);
+  const lang=pickLang(seed);
+  const author=pickAuthor(lang.style,seed+'a');
+
+  // Narrator
+  const line=narLines[Math.floor(Math.random()*narLines.length)](coords);
+  const ntEl=document.getElementById('narr-text');
+  ntEl.textContent='';
+  document.getElementById('narr').classList.add('on');
+  let ni=0;
+  const ti=setInterval(()=>{if(ni<line.length)ntEl.textContent+=line[ni++];else clearInterval(ti);},30);
+  await delay(3600);
+  document.getElementById('narr').classList.remove('on');
+
+  document.getElementById('loading').classList.add('on');
+  let lmi=0;const lEl=document.getElementById('lmsg');
+  const lInt=setInterval(()=>{lmi=(lmi+1)%lmsgs.length;lEl.textContent=lmsgs[lmi];},1900);
+
+  // Single backend call — all logic lives in generate.js
+  const data=await callBackend({
+    tema:actualTema,
+    genre,
+    lang:{code:lang.code,name:lang.name,fictional:lang.fictional||false},
+    author,
+  });
+
+  clearInterval(lInt);
+  document.getElementById('loading').classList.remove('on');
+
+  if(data.error){
+    alert('La biblioteca no responde: '+data.error);
+    return;
+  }
+
+  const raw=data.text||'Sin título\n\n[La obra se perdió entre las galerías.]';
+  const parts=raw.split(/—\s*Traducción\s*—/i);
+  const original=parts[0].trim();
+  const oLines=original.split('\n');
+  const title=oLines[0];
+  const body=oLines.slice(1).join('\n').replace(/^\n+/,'').trim();
+  const translText=parts[1]?.trim()||'';
+  const authorText=data.author||author;
+
+  animateCoords(coords);
+
+  document.getElementById('bv-topbar-title').textContent=title;
+  document.getElementById('bv-eyebrow').textContent='';
+  document.getElementById('bv-title').textContent=title;
+  document.getElementById('bv-meta').innerHTML=
+    '<span class="bv-tag">'+lang.name+'</span>'+
+    '<span class="bv-tag">'+genre+'</span>'+
+    '<span class="bv-tag">'+Math.ceil((body||raw).split(' ').length/200)+' min</span>';
+  document.getElementById('bv-author').textContent=authorText;
+  document.getElementById('bvc-sala').textContent=String(coords.sala).padStart(6,'0');
+  document.getElementById('bvc-piso').textContent=(coords.piso>=0?'+':'')+coords.piso;
+  document.getElementById('bvc-vol').textContent=coords.vol;
+  document.getElementById('bvc-pag').textContent=coords.pag;
+  document.getElementById('bv-text').textContent=body||raw;
+  document.getElementById('bv-scroll').scrollTop=0;
+
+  const tb=document.getElementById('bv-trans-block');
+  if(translText){tb.style.display='block';document.getElementById('bv-trans').textContent=translText;}
+  else tb.style.display='none';
+
+  document.getElementById('bookview').classList.add('on');
+  document.getElementById('prog').style.width='100%';
+  setTimeout(()=>document.getElementById('prog').style.width='0%',1200);
+}
+
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+</script>
+</body>
+</html>
